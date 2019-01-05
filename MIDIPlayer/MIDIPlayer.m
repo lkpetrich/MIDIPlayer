@@ -25,6 +25,7 @@ static NSString *MakeFormattedTime(double TimeVal, NSString *Separator) {
     NSData *Data;
     AVMIDIPlayer *Player;
     NSTimer *Timer;
+    BOOL WasInterrupted;
 }
 
 @end
@@ -38,6 +39,7 @@ static NSString *MakeFormattedTime(double TimeVal, NSString *Separator) {
         Data = nil;
         Player = nil;
         Timer = nil;
+        WasInterrupted = NO;
     }
     return self;
 }
@@ -97,6 +99,7 @@ static NSString *MakeFormattedTime(double TimeVal, NSString *Separator) {
     });
 }
 
+
 - (void)WhenFinishedPlaying {
     // Just in case we don't have a valid player
     if (!Player) return;
@@ -110,9 +113,12 @@ static NSString *MakeFormattedTime(double TimeVal, NSString *Separator) {
     if (!Player) return;
     
     if (Player.playing) {
+        WasInterrupted = YES;
         [Player stop];
     }
     else {
+        if (!WasInterrupted) Player.currentPosition = 0;
+        WasInterrupted = NO;
         [Player play:^{[self WhenFinishedPlaying];}];
     }
     [self UpdatePlayButton];
@@ -129,6 +135,7 @@ static NSString *MakeFormattedTime(double TimeVal, NSString *Separator) {
     if (WasPlaying) [Player stop];
     
     Player.currentPosition = 0;
+    WasInterrupted = NO;
     if (WasPlaying) [Player play:^{[self WhenFinishedPlaying];}];
 }
 
@@ -136,10 +143,6 @@ static NSString *MakeFormattedTime(double TimeVal, NSString *Separator) {
 - (void)UpdateDisplay:(NSTimer *)Timer {
     // Just in case we don't have a valid player
     if (!Player) return;
-    
-    // Reset to the beginning if necessary
-    if (Player.currentPosition >= Player.duration)
-        Player.currentPosition = 0;
     
     // Update the UI widgets
     double CurrTimeVal = Player.currentPosition;
